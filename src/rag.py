@@ -21,7 +21,7 @@ def load_index():
 # Load once at module import
 index, chunks = load_index()
 
-def retrieve(query, k=3):
+def retrieve(query, k=3):  
     """Retrieve top K relevant chunks for the query"""
     if index is None or not chunks:
         return "No documents indexed. Please run ingest.py first."

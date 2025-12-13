@@ -42,20 +42,35 @@ def get_messages(chat_id: str, session: Session = Depends(get_session)):
     messages = session.query(Message).filter(Message.chat_id == chat_id).all()
     return [{"role": m.role, "content": m.content} for m in messages]
 
-# Main endpoint: Ask a question with RAG
+@app.delete("/chat/{chat_id}")
+def delete_chat(chat_id: str, session: Session = Depends(get_session)):
+    chat = session.query(Chat).filter(Chat.chat_id == chat_id).first()
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat not found")
+    
+    session.delete(chat)
+    session.commit()
+    return {"detail": f"Chat {chat_id} deleted successfully"}
+
 @app.post("/ask/")
 def ask_question(request: QuestionRequest, session: Session = Depends(get_session)):
-    # Retrieve relevant context from FAISS
-    context = retrieve(request.question, k=3)
+    # Retrieve relevant context from FAISS with citation information
+    context = retrieve(request.question, k=3)  # Adjust `k` as needed
     
-    # Build the prompt with context
-    prompt = f"""Answer the question using the context below.
-    
-Context:
+    # Build the prompt with context and citation information
+    prompt = f"""Answer the question using the context below. Your answer should be precise, include relevant **quantitative data** (e.g., percentages, ratios, specific metrics), and cite the source for each fact. Provide direct references to numbers wherever possible.
+
+Context (with citations):
 {context}
 
 Question:
-{request.question}"""
+{request.question}
+
+Citation format: [doc_id: chunk_id]
+
+Be sure to answer using specific figures or data points mentioned in the context. If the question involves a comparison, ensure that you include all necessary details to demonstrate that comparison clearly.
+Be sure to provide **all relevant data** in the format presented in the context. If numerical values or percentages are given, make sure to **state them explicitly** in your answer.
+"""
     
     # Call LLM
     messages = [{"role": "user", "content": prompt}]
@@ -82,4 +97,4 @@ Question:
         session.add(assistant_msg)
         session.commit()
     
-    return {"answer": answer, "context_used": context[:200] + "..."}
+    return {"answer": answer, "context_used": context}  # Remove truncation

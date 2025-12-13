@@ -51,23 +51,37 @@ with st.sidebar:
                 st.info("No chats yet. Create one above!")
             
             for chat in chats:
-                if st.button(chat["title"], key=chat["chat_id"]):
-                    st.session_state.current_chat_id = chat["chat_id"]
-                    # Load messages for this chat
-                    try:
-                        msgs_response = requests.get(
-                            f"{API_URL}/messages/{chat['chat_id']}",
-                            timeout=10
-                        )
-                        if msgs_response.status_code == 200:
-                            st.session_state.messages = msgs_response.json()
-                        else:
-                            st.error(f"Error loading messages: {msgs_response.text}")
+                col1, col2 = st.columns([4, 1])  # Add columns for the chat and button
+                with col1:
+                    if st.button(chat["title"], key=chat["chat_id"]):
+                        st.session_state.current_chat_id = chat["chat_id"]
+                        # Load messages for this chat
+                        try:
+                            msgs_response = requests.get(
+                                f"{API_URL}/messages/{chat['chat_id']}",
+                                timeout=10
+                            )
+                            if msgs_response.status_code == 200:
+                                st.session_state.messages = msgs_response.json()
+                            else:
+                                st.error(f"Error loading messages: {msgs_response.text}")
+                                st.session_state.messages = []
+                        except requests.exceptions.RequestException as e:
+                            st.error(f"Error loading messages: {e}")
                             st.session_state.messages = []
-                    except requests.exceptions.RequestException as e:
-                        st.error(f"Error loading messages: {e}")
-                        st.session_state.messages = []
-                    st.rerun()
+                        st.rerun()
+                with col2:
+                    delete_button = st.button("🗑️", key=f"delete_{chat['chat_id']},", help="Delete chat", 
+                                              use_container_width=True)
+                    if delete_button:
+                        response = requests.delete(f"{API_URL}/chat/{chat['chat_id']}")
+                        if response.status_code == 200:
+                            st.success(f"Chat '{chat['title']}' deleted.")
+                            st.session_state.messages = []
+                            st.session_state.current_chat_id = None
+                            st.rerun()
+                        else:
+                            st.error(f"Failed to delete chat '{chat['title']}': {response.text}")
         else:
             st.error(f"Error loading chats: {chats_response.text}")
     except requests.exceptions.RequestException as e:
