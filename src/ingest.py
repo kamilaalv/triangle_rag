@@ -10,7 +10,7 @@ from tqdm import tqdm
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # Function to chunk the text into smaller pieces
-def chunk_text(text, size=500):
+def chunk_text(text, size=1000):
     return [text[i:i+size] for i in range(0, len(text), size)]
 
 # Read all .txt files from out_txt directory
