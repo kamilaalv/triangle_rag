@@ -1,0 +1,19 @@
+{
+    "Example1": [
+        {"role": "user", "content": "Daha az quyu ilə daha çox hasilat əldə etmək üçün hansı əsas amillərin inteqrasiyası tələb olunur?"}
+    ],
+    "Example2": [
+        {"role": "user", "content": "Qərbi Abşeron yatağında suvurma tədbirləri hansı tarixdə və hansı layda tətbiq edilmişdir və bunun məqsədi nə idi?"}
+    ],
+    "Example3": [
+        {"role": "user", "content": "Pirallahı strukturunda 1253 nömrəli quyudan götürülmüş nümunələrdə SiO2 və CaO oksidləri arasında hansı korrelyasiya mövcuddur və bu, kollektor xüsusiyyətlərinə necə təsir edir?"}
+    ],
+    "Example4": [
+        {"role": "user", "content": "Bakı arxipelaqı (BA) və Aşağı Kür çökəkliyi (AKÇ) üçün geotemperatur xəritələrinə əsasən neft və qaz əmələgəlməsinin baş zonalarını (dərinlik intervallarını) müqayisəli şəkildə təhlil et."}
+    ],
+    "Example5": [
+        {"role": "user", "content": "Palçıq vulkanlarının ətrafında gil deformasiyaları hansı radiusda müşahidə olunur?"},
+        {"role": "assistant", "content": "Sahə müşahidələri və modelləşdirmə göstərir ki, palçıq vulkanlarının təsir radiusu təqribən 10 km-dir."},
+        {"role": "user", "content": "Bu zonada hansı proseslər baş verir?"}
+    ]
+}

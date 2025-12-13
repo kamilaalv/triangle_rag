@@ -1,0 +1,10 @@
+faiss-cpu 
+sentence-transformers 
+fastapi 
+uvicorn 
+streamlit 
+python-dotenv 
+sqlalchemy 
+requests
+dotenv
+openai
