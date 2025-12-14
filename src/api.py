@@ -1,10 +1,11 @@
 from fastapi import FastAPI, HTTPException, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, RootModel
 from sqlalchemy.orm import Session
 from src.db import get_session, Chat, Message
 from src.llm_client import foundry_chat
 from src.rag import retrieve_with_metadata
 import uuid
+from typing import List, Dict
 
 app = FastAPI()
 
@@ -20,7 +21,14 @@ class ChatMessage(BaseModel):
     content: str
 
 class LLMRequest(BaseModel):
-    messages: list[dict[str, str]]
+   RootModel: List[Dict[str, str]]
+
+class Message(BaseModel):
+    role: str
+    content: str
+
+class RequestBody(BaseModel):
+    messages: List[Message]
 
 class SourceReference(BaseModel):
     pdf_name: str
@@ -52,7 +60,7 @@ def get_chats(session: Session = Depends(get_session)):
 @app.get("/messages/{chat_id}")
 def get_messages(chat_id: str, session: Session = Depends(get_session)):
     messages = session.query(Message).filter(Message.chat_id == chat_id).all()
-    return [{"role": m.role, "content": m.content} for m in messages]
+    return [{"role": m["role"], "content": m["content"]} for m in messages]
 
 @app.delete("/chat/{chat_id}")
 def delete_chat(chat_id: str, session: Session = Depends(get_session)):
@@ -64,13 +72,13 @@ def delete_chat(chat_id: str, session: Session = Depends(get_session)):
     session.commit()
     return {"detail": f"Chat {chat_id} deleted successfully"}
 
-@app.post("/llm/", response_model=LLMResponse)
-def llm_endpoint(request: LLMRequest):
+@app.post("/llm/")
+def llm_endpoint(request: List[Dict[str, str]]):
     """
     LLM endpoint that receives chat history and produces an answer with source references.
     Handles follow-up questions by including previous context in RAG query.
     """
-    if not request.messages:
+    if not request:
         raise HTTPException(status_code=400, detail="Messages array cannot be empty")
     
     # Get the last user message for RAG retrieval
@@ -79,18 +87,18 @@ def llm_endpoint(request: LLMRequest):
     previous_assistant_message = None
     
     # We need to track pairs: find the assistant message RIGHT BEFORE the last user message
-    for i in range(len(request.messages) - 1, -1, -1):
-        msg = request.messages[i]
+    for i in range(len(request) - 1, -1, -1):
+        msg = request[i]
         
-        if msg.role == "user" and last_user_message is None:
+        if msg["role"] == "user" and last_user_message is None:
             # This is the most recent user message
-            last_user_message = msg.content
-        elif msg.role == "assistant" and last_user_message is not None and previous_assistant_message is None:
+            last_user_message = msg["content"]
+        elif msg["role"] == "assistant" and last_user_message is not None and previous_assistant_message is None:
             # This is the assistant message right before the last user message
-            previous_assistant_message = msg.content
-        elif msg.role == "user" and previous_assistant_message is not None and previous_user_message is None:
+            previous_assistant_message = msg["content"]
+        elif msg["role"] == "user" and previous_assistant_message is not None and previous_user_message is None:
             # This is the user message before the last exchange (for additional context)
-            previous_user_message = msg.content
+            previous_user_message = msg["content"]
             break  # We have enough context
     
     if not last_user_message:
@@ -139,26 +147,30 @@ Hazırkı suala cavab verməklə yanaşı, əvvəlki cavablara və ya qarşılı
     
     # Build messages array for LLM (system + chat history)
     llm_messages = [{"role": "system", "content": system_prompt}]
+
+    print(request)  # Debug output
     
     # Add the full chat history to maintain conversation continuity
-    for msg in request.messages:
-        llm_messages.append({"role": msg.role, "content": msg.content})
+    for msg in request:
+        llm_messages.append({"role": msg["role"], "content": msg["content"]})
     
     # Call LLM
     answer = foundry_chat(llm_messages, max_tokens=500)
-    
+
+    print(answer)
     # Prepare source references for response
     source_refs = [
-        SourceReference(
-            pdf_name=source["pdf_name"],
-            page_number=source["page_number"],
-            content=source["content"]
-        )
+        # SourceReference(
+            # pdf_name=source["pdf_name"],
+            # page_number=source["page_number"],
+            # content=source["content"]
+        # )
+        {"pdf_name": source["pdf_name"], "page_number": source["page_number"], "content": source["content"]}
         for source in sources
     ]
     print(f"Sources: {source_refs}")
     print(f"Answer: {answer}")
-    return LLMResponse(sources=source_refs, answer=answer)
+    return {"sources": source_refs, "answer": answer}
   
 
 # Keep the old /ask/ endpoint for backward compatibility (optional)
@@ -183,7 +195,7 @@ def ask_question(request: QuestionRequest, session: Session = Depends(get_sessio
         previous_messages.reverse()
         
         for msg in previous_messages:
-            messages.append({"role": msg.role, "content": msg.content})
+            messages.append({"role": msg["role"], "content": msg["content"]})
     
     # Add current question
     messages.append({"role": "user", "content": request.question})
