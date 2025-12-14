@@ -388,7 +388,7 @@ def extract_text_from_image(
             raise
         raise
 
-app.post("/ocr/")
+@app.post("/ocr/")
 async def ocr_pdf(
     file: UploadFile = File(...),
     zoom: float = Form(1.7),
