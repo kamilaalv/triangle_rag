@@ -158,7 +158,7 @@ Hazırkı suala cavab verməklə yanaşı, əvvəlki cavablara və ya qarşılı
     ]
     print(f"Sources: {source_refs}")
     print(f"Answer: {answer}")
-    return LLMResponse(sources=source_refs, answer=answer)
+    return LLMResponse(sources=source_refs, answer=answer).model_dump()
     """Example endpoint showing pretty-formatted JSON"""
     return JSONResponse(
         content={
