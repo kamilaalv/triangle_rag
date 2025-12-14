@@ -156,7 +156,8 @@ Hazırkı suala cavab verməklə yanaşı, əvvəlki cavablara və ya qarşılı
         )
         for source in sources
     ]
-    
+    print(f"Sources: {source_refs}")
+    print(f"Answer: {answer}")
     return LLMResponse(sources=source_refs, answer=answer)
     """Example endpoint showing pretty-formatted JSON"""
     return JSONResponse(
