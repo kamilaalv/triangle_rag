@@ -55,28 +55,34 @@ def delete_chat(chat_id: str, session: Session = Depends(get_session)):
 @app.post("/ask/")
 def ask_question(request: QuestionRequest, session: Session = Depends(get_session)):
     # Retrieve relevant context from FAISS with citation information
-    context = retrieve(request.question, k=3)  # Adjust `k` as needed
+    context = retrieve(request.question, k=3)  # Retrieve context from past interactions
     
-    # Build the prompt with context and citation information
-    prompt = f"""Answer the question using the context below. Your answer should be precise, include relevant **quantitative data** (e.g., percentages, ratios, specific metrics), and cite the source for each fact. Provide direct references to numbers wherever possible.
+    # Fetch last few messages in the current chat to include memory
+    if request.chat_id:
+        previous_messages = session.query(Message).filter(Message.chat_id == request.chat_id).order_by(Message.created_at.desc()).limit(5).all()
+        memory = "\n".join([msg.content for msg in previous_messages])
+        context = f"{memory}\n\n{context}"  # Append previous chat memory to the context
 
-Context (with citations):
+    # Build the prompt with context and citation information
+    prompt = f"""Aşağıdakı kontekstdən istifadə edərək sualı cavablandırın, həmişə Azərbaycan dilində. Kontekst Azərbaycan dilindədir. Cavabınız dəqiq olmalı, müvafiq **kəmiyyət məlumatlarını** (məsələn, faizlər, nisbətlər, konkret ölçülər) daxil etməli və hər bir faktın mənbəyini qeyd etməlidir. Mümkün olduğu halda, rəqəmlərə birbaşa istinad edin.
+
+Kontekst (istinadlarla):
 {context}
 
-Question:
+Sual:
 {request.question}
 
-Citation format: [doc_id: chunk_id]
+İstinad formatı: [doc_id: chunk_id]
 
-Be sure to answer using specific figures or data points mentioned in the context. If the question involves a comparison, ensure that you include all necessary details to demonstrate that comparison clearly.
-Be sure to provide **all relevant data** in the format presented in the context. If numerical values or percentages are given, make sure to **state them explicitly** in your answer.
+Kontekstdə qeyd olunan konkret rəqəmləri və ya məlumat nöqtələrini istifadə edərək cavab verməyə əmin olun. Əgər sual müqayisə ilə bağlıdırsa, bu müqayisəni aydın şəkildə göstərmək üçün bütün lazımlı detalları daxil etdiyinizdən əmin olun.
+Hazırkı suala cavab verməklə yanaşı, əvvəlki cavablara və ya qarşılıqlı əlaqələrə aid olan məlumatlara da istifadə edin, söhbətin davamlılığını və ardıcıllığını qoruyun.
 """
     
-    # Call LLM
+    # Call LLM (Language Model) for the response
     messages = [{"role": "user", "content": prompt}]
     answer = foundry_chat(messages, max_tokens=500)
     
-    # Save to database if chat_id provided
+    # Save the user and assistant messages in the database if chat_id is provided
     if request.chat_id:
         # Save user message
         user_msg = Message(
@@ -97,4 +103,4 @@ Be sure to provide **all relevant data** in the format presented in the context.
         session.add(assistant_msg)
         session.commit()
     
-    return {"answer": answer, "context_used": context}  # Remove truncation
+    return {"answer": answer, "context_used": context}  # Return the context used for the response
