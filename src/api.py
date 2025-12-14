@@ -20,7 +20,7 @@ class ChatMessage(BaseModel):
     content: str
 
 class LLMRequest(BaseModel):
-    messages: list[ChatMessage]
+    messages: list[dict[str, str]]
 
 class SourceReference(BaseModel):
     pdf_name: str
