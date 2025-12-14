@@ -191,7 +191,7 @@ This legacy endpoint is for backward compatibility. It accepts a question and ch
 To run the server, use the following command:
 
 ```bash
-uvicorn main:app --reload
+uvicorn src.api:app --reload
 ```
 
 The API will be available at `http://127.0.0.1:8000`.
